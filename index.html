@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YOU DECIDE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --red: #ff2020;
+      --white: #f0ede8;
+      --black: #080808;
+      --gray: #1a1a1a;
+      --muted: #444;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--black);
+      color: var(--white);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: crosshair;
+    }
+
+    /* SCANLINE OVERLAY */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.07) 2px,
+        rgba(0,0,0,0.07) 4px
+      );
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    /* NOISE TEXTURE */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9998;
+    }
+
+    header {
+      padding: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1f1f1f;
+      position: relative;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 0.3em;
+      color: var(--red);
+    }
+
+    #live-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+    }
+
+    .live-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .hero {
+      padding: 5rem 2rem 3rem;
+      max-width: 900px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .hero-eyebrow {
+      font-size: 0.6rem;
+      letter-spacing: 0.4em;
+      color: var(--red);
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(5rem, 15vw, 11rem);
+      line-height: 0.9;
+      letter-spacing: 0.02em;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+    }
+
+    h1 span {
+      color: var(--red);
+      display: block;
+    }
+
+    .hero-sub {
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      color: var(--muted);
+      max-width: 400px;
+      margin: 0 auto 3rem;
+      line-height: 1.8;
+    }
+
+    /* COUNTDOWN */
+    #countdown-section {
+      text-align: center;
+      padding: 2rem;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+      margin-bottom: 4rem;
+    }
+
+    .countdown-label {
+      font-size: 0.55rem;
+      letter-spacing: 0.4em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    #countdown-display {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2.5rem, 8vw, 5rem);
+      letter-spacing: 0.1em;
+      transition: opacity 0.1s;
+    }
+
+    #countdown-display.glitch {
+      animation: glitch 0.3s steps(1);
+    }
+
+    @keyframes glitch {
+      0% { transform: translate(0); color: var(--white); }
+      20% { transform: translate(-3px, 1px); color: var(--red); clip-path: inset(20% 0 40% 0); }
+      40% { transform: translate(3px, -1px); color: var(--white); clip-path: inset(60% 0 10% 0); }
+      60% { transform: translate(-2px, 2px); color: #00ffcc; }
+      80% { transform: translate(2px, -2px); color: var(--white); }
+      100% { transform: translate(0); color: var(--white); }
+    }
+
+    /* VOTE SECTIONS */
+    .vote-grid {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 2rem 6rem;
+      display: grid;
+      gap: 3rem;
+    }
+
+    .vote-block {
+      border: 1px solid #1f1f1f;
+      padding: 2rem;
+      position: relative;
+      transition: border-color 0.3s;
+    }
+
+    .vote-block:hover {
+      border-color: #333;
+    }
+
+    .vote-block-number {
+      position: absolute;
+      top: -0.7rem;
+      left: 1.5rem;
+      background: var(--black);
+      padding: 0 0.5rem;
+      font-size: 0.55rem;
+      letter-spacing: 0.3em;
+      color: var(--red);
+    }
+
+    .vote-block-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 2.2rem;
+      letter-spacing: 0.05em;
+      margin-bottom: 1.5rem;
+      color: var(--white);
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .option-btn {
+      background: transparent;
+      border: 1px solid #2a2a2a;
+      color: var(--white);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      padding: 1rem 0.75rem;
+      cursor: crosshair;
+      text-align: left;
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .option-btn::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 0;
+      background: var(--red);
+      opacity: 0.08;
+      transition: width 0.3s;
+    }
+
+    .option-btn:hover::before { width: 100%; }
+
+    .option-btn:hover {
+      border-color: var(--red);
+      color: var(--white);
+    }
+
+    .option-btn.selected {
+      border-color: var(--red);
+      background: rgba(255,32,32,0.08);
+      color: var(--white);
+    }
+
+    .option-btn.selected::after {
+      content: '✓';
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--red);
+      font-size: 0.7rem;
+    }
+
+    /* VOTE BAR */
+    .vote-bar-wrap {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .vote-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.6rem;
+      letter-spacing: 0.05em;
+    }
+
+    .vote-bar-label { width: 120px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .vote-bar-track {
+      flex: 1;
+      height: 2px;
+      background: #1f1f1f;
+      position: relative;
+    }
+
+    .vote-bar-fill {
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      background: var(--red);
+      transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .vote-bar-pct {
+      width: 35px;
+      text-align: right;
+      color: var(--muted);
+    }
+
+    /* SUBMIT */
+    #submit-section {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-top: 1px solid #1a1a1a;
+    }
+
+    #submit-btn {
+      background: var(--red);
+      border: none;
+      color: var(--white);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 1.3rem;
+      letter-spacing: 0.3em;
+      padding: 1rem 3rem;
+      cursor: crosshair;
+      transition: all 0.2s;
+      display: inline-block;
+    }
+
+    #submit-btn:hover {
+      background: var(--white);
+      color: var(--black);
+    }
+
+    #submit-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* TOTAL VOTES */
+    #vote-counter {
+      font-size: 0.6rem;
+      letter-spacing: 0.2em;
+      color: var(--muted);
+      margin-top: 1.5rem;
+    }
+
+    /* HIDDEN ZONE — secret area */
+    #secret-zone {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 12px;
+      height: 12px;
+      cursor: crosshair;
+      z-index: 100;
+    }
+
+    /* ===================== */
+    /* PHASE 2: GLITCH STATE  */
+    /* ===================== */
+    #phase2-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: var(--black);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    #phase2-overlay.active {
+      display: flex;
+    }
+
+    .p2-msg {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(2rem, 8vw, 5rem);
+      line-height: 1;
+      margin-bottom: 2rem;
+      opacity: 0;
+      animation: fadeSlideUp 0.6s forwards;
+    }
+
+    .p2-sub {
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      color: var(--muted);
+      opacity: 0;
+      animation: fadeSlideUp 0.6s 0.4s forwards;
+      max-width: 400px;
+    }
+
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .p2-results {
+      margin: 3rem 0;
+      opacity: 0;
+      animation: fadeSlideUp 0.6s 0.8s forwards;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .p2-result-row {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #1a1a1a;
+      padding: 0.75rem 0;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+    }
+
+    .p2-result-row .wrong-num {
+      color: var(--red);
+      text-decoration: line-through;
+      margin-right: 0.5rem;
+    }
+
+    .p2-override-msg {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(3rem, 10vw, 7rem);
+      color: var(--red);
+      margin-top: 2rem;
+      opacity: 0;
+      animation: fadeSlideUp 0.6s 1.6s forwards;
+      line-height: 0.95;
+    }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid #111;
+      padding: 2rem;
+      text-align: center;
+      font-size: 0.55rem;
+      letter-spacing: 0.2em;
+      color: #222;
+    }
+
+    /* SECRET FOUND */
+    #secret-toast {
+      position: fixed;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--red);
+      color: var(--white);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      padding: 1rem 2rem;
+      z-index: 9997;
+      transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    #secret-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Flickering effect */
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      92% { opacity: 1; }
+      93% { opacity: 0.4; }
+      94% { opacity: 1; }
+      96% { opacity: 0.6; }
+      97% { opacity: 1; }
+    }
+
+    body.flicker-mode {
+      animation: flicker 8s infinite;
+    }
+
+    .redacted {
+      background: var(--white);
+      color: var(--white);
+      user-select: none;
+      transition: all 0.3s;
+    }
+
+    .redacted:hover {
+      background: transparent;
+      color: var(--red);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">ARTIST NAME</div>
+    <div id="live-indicator">
+      <div class="live-dot"></div>
+      VOTING OPEN
+    </div>
+  </header>
+
+  <section class="hero">
+    <p class="hero-eyebrow">New Project — You Choose</p>
+    <h1>YOU<span>DECIDE</span></h1>
+    <p class="hero-sub">Cast your votes. Shape the project. The results will be honored.</p>
+  </section>
+
+  <section id="countdown-section">
+    <p class="countdown-label">VOTING CLOSES IN</p>
+    <div id="countdown-display">00:00:00:00</div>
+  </section>
+
+  <div class="vote-grid">
+
+    <!-- VOTE 1: Release Date -->
+    <div class="vote-block" id="block-0">
+      <span class="vote-block-number">01 / RELEASE DATE</span>
+      <h2 class="vote-block-title">When Does It Drop?</h2>
+      <div class="options">
+        <button class="option-btn" data-block="0" data-val="This Month">THIS MONTH</button>
+        <button class="option-btn" data-block="0" data-val="Next Month">NEXT MONTH</button>
+        <button class="option-btn" data-block="0" data-val="Summer">SUMMER</button>
+        <button class="option-btn" data-block="0" data-val="Surprise Drop">SURPRISE DROP</button>
+      </div>
+      <div class="vote-bar-wrap" id="bars-0"></div>
+    </div>
+
+    <!-- VOTE 2: Lead Single -->
+    <div class="vote-block" id="block-1">
+      <span class="vote-block-number">02 / LEAD SINGLE</span>
+      <h2 class="vote-block-title">Pick The First Single</h2>
+      <div class="options">
+        <button class="option-btn" data-block="1" data-val="Track 01">TRACK 01 — <span class="redacted">REDACTED</span></button>
+        <button class="option-btn" data-block="1" data-val="Track 02">TRACK 02 — <span class="redacted">REDACTED</span></button>
+        <button class="option-btn" data-block="1" data-val="Track 03">TRACK 03 — <span class="redacted">REDACTED</span></button>
+        <button class="option-btn" data-block="1" data-val="Track 04">TRACK 04 — <span class="redacted">REDACTED</span></button>
+      </div>
+      <div class="vote-bar-wrap" id="bars-1"></div>
+    </div>
+
+    <!-- VOTE 3: Cover Art -->
+    <div class="vote-block" id="block-2">
+      <span class="vote-block-number">03 / COVER ART</span>
+      <h2 class="vote-block-title">Choose The Cover</h2>
+      <div class="options">
+        <button class="option-btn" data-block="2" data-val="Minimal">MINIMAL — Text only</button>
+        <button class="option-btn" data-block="2" data-val="Photo">PHOTO — Raw shot</button>
+        <button class="option-btn" data-block="2" data-val="Abstract">ABSTRACT — No face</button>
+        <button class="option-btn" data-block="2" data-val="Dark">DARK — Black cover</button>
+      </div>
+      <div class="vote-bar-wrap" id="bars-2"></div>
+    </div>
+
+    <!-- VOTE 4: Feature -->
+    <div class="vote-block" id="block-3">
+      <span class="vote-block-number">04 / FEATURE</span>
+      <h2 class="vote-block-title">Who's On It?</h2>
+      <div class="options">
+        <button class="option-btn" data-block="3" data-val="No features">NO FEATURES — Solo</button>
+        <button class="option-btn" data-block="3" data-val="Unknown artist">UNKNOWN ARTIST</button>
+        <button class="option-btn" data-block="3" data-val="Big name">BIG NAME</button>
+        <button class="option-btn" data-block="3" data-val="Fan collab">FAN COLLAB</button>
+      </div>
+      <div class="vote-bar-wrap" id="bars-3"></div>
+    </div>
+
+  </div>
+
+  <section id="submit-section">
+    <button id="submit-btn" disabled>SUBMIT VOTES</button>
+    <p id="vote-counter">— votes cast so far —</p>
+  </section>
+
+  <footer>
+    ALL VOTES ARE FINAL · RESULTS DETERMINED BY THE COMMUNITY · © ARTIST NAME
+  </footer>
+
+  <!-- SECRET ZONE (tiny invisible clickable) -->
+  <div id="secret-zone" title=""></div>
+
+  <!-- SECRET TOAST -->
+  <div id="secret-toast">⚠ YOU FOUND SOMETHING. CHECK YOUR DMs.</div>
+
+  <!-- PHASE 2 OVERLAY -->
+  <div id="phase2-overlay">
+    <p class="p2-msg">SOMETHING IS WRONG</p>
+    <p class="p2-sub">The numbers don't add up. Someone interfered.</p>
+    <div class="p2-results" id="p2-results-content"></div>
+    <div class="p2-override-msg">THIS WAS<br>NEVER YOUR<br>CHOICE</div>
+  </div>
+
+  <script>
+    // ─── STATE ──────────────────────────────────────────────
+    const votes = [null, null, null, null];
+
+    // Fake base vote counts for each option (to make results feel real)
+    const baseCounts = [
+      [412, 889, 234, 1204],
+      [678, 1102, 445, 321],
+      [567, 890, 1233, 780],
+      [2100, 345, 678, 156]
+    ];
+
+    // What the twist reveals: "wrong" numbers shown during glitch phase
+    const wrongCounts = [
+      [412, 889, 234, "ERROR"],
+      [678, "???", 445, 321],
+      [567, 890, "REDACTED", 780],
+      ["2100+", 345, 678, 156]
+    ];
+
+    const labels = [
+      ["This Month", "Next Month", "Summer", "Surprise Drop"],
+      ["Track 01", "Track 02", "Track 03", "Track 04"],
+      ["Minimal", "Photo", "Abstract", "Dark"],
+      ["No Features", "Unknown Artist", "Big Name", "Fan Collab"]
+    ];
+
+    // ─── COUNTDOWN ───────────────────────────────────────────
+    // Set end date (3 days from now by default — edit as needed)
+    const endDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+
+    function updateCountdown() {
+      const now = Date.now();
+      const diff = endDate - now;
+      if (diff <= 0) {
+        triggerPhase2();
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      document.getElementById('countdown-display').textContent =
+        `${String(d).padStart(2,'0')}:${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+      // Random glitch
+      if (Math.random() < 0.004) {
+        const el = document.getElementById('countdown-display');
+        el.classList.add('glitch');
+        setTimeout(() => el.classList.remove('glitch'), 400);
+      }
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    // ─── RANDOM GLITCH COUNTDOWN RESET ───────────────────────
+    // Every ~45s, briefly flicker the countdown to a wrong value
+    setInterval(() => {
+      if (Math.random() < 0.4) {
+        const el = document.getElementById('countdown-display');
+        const origText = el.textContent;
+        el.textContent = 'ERROR:??:??:??';
+        el.style.color = 'var(--red)';
+        setTimeout(() => {
+          el.textContent = origText;
+          el.style.color = '';
+        }, 600);
+      }
+    }, 45000);
+
+    // ─── VOTE BUTTONS ─────────────────────────────────────────
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const block = parseInt(btn.dataset.block);
+        const val = btn.dataset.val;
+
+        // Deselect others in same block
+        document.querySelectorAll(`[data-block="${block}"]`).forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        votes[block] = val;
+
+        // Update fake vote counts
+        updateBars(block, btn);
+        checkSubmitEnabled();
+        updateVoteCounter();
+      });
+    });
+
+    function updateBars(blockIdx, clickedBtn) {
+      const wrap = document.getElementById(`bars-${blockIdx}`);
+      wrap.style.display = 'block';
+      wrap.innerHTML = '';
+
+      const optBtns = document.querySelectorAll(`[data-block="${blockIdx}"]`);
+      const counts = [...baseCounts[blockIdx]];
+
+      // Bump clicked option slightly
+      const clickedIndex = [...optBtns].indexOf(clickedBtn);
+      counts[clickedIndex] += Math.floor(Math.random() * 80) + 20;
+
+      const total = counts.reduce((a, b) => a + b, 0);
+
+      counts.forEach((count, i) => {
+        const pct = Math.round((count / total) * 100);
+        const row = document.createElement('div');
+        row.className = 'vote-bar-row';
+        row.innerHTML = `
+          <span class="vote-bar-label">${labels[blockIdx][i]}</span>
+          <div class="vote-bar-track"><div class="vote-bar-fill" style="width:0%"></div></div>
+          <span class="vote-bar-pct">${pct}%</span>
+        `;
+        wrap.appendChild(row);
+        setTimeout(() => {
+          row.querySelector('.vote-bar-fill').style.width = pct + '%';
+        }, 50 + i * 80);
+      });
+    }
+
+    function checkSubmitEnabled() {
+      const allVoted = votes.every(v => v !== null);
+      document.getElementById('submit-btn').disabled = !allVoted;
+    }
+
+    function updateVoteCounter() {
+      // Fake but plausible total
+      const base = 4821;
+      const extra = votes.filter(v => v !== null).length * Math.floor(Math.random() * 30 + 10);
+      document.getElementById('vote-counter').textContent =
+        `${(base + extra).toLocaleString()} VOTES CAST SO FAR`;
+    }
+
+    // ─── SUBMIT ──────────────────────────────────────────────
+    document.getElementById('submit-btn').addEventListener('click', () => {
+      const btn = document.getElementById('submit-btn');
+      btn.textContent = 'RECORDING...';
+      btn.disabled = true;
+
+      // Fake processing
+      setTimeout(() => {
+        btn.textContent = 'VOTES LOCKED';
+        // After 1.5s, trigger Phase 2
+        setTimeout(() => {
+          triggerPhase2();
+        }, 1500);
+      }, 1200);
+    });
+
+    // ─── PHASE 2: THE TWIST ───────────────────────────────────
+    function triggerPhase2() {
+      document.body.classList.add('flicker-mode');
+
+      // Build the "messed up" results table
+      const container = document.getElementById('p2-results-content');
+      container.innerHTML = '<p style="font-size:0.55rem;letter-spacing:0.3em;color:var(--muted);margin-bottom:1.5rem;">FINAL VOTE TOTALS</p>';
+
+      labels.forEach((group, gi) => {
+        group.forEach((label, li) => {
+          const row = document.createElement('div');
+          row.className = 'p2-result-row';
+          const wrong = wrongCounts[gi][li];
+          const real = baseCounts[gi][li].toLocaleString();
+          const isWeird = isNaN(wrong);
+          row.innerHTML = `
+            <span>${label}</span>
+            <span>
+              ${isWeird ? `<span class="wrong-num">${real}</span><span style="color:var(--red)">${wrong}</span>` : real}
+            </span>
+          `;
+          container.appendChild(row);
+        });
+      });
+
+      // Show overlay after brief delay
+      setTimeout(() => {
+        document.getElementById('phase2-overlay').classList.add('active');
+      }, 300);
+    }
+
+    // ─── SECRET ZONE ──────────────────────────────────────────
+    let secretClicks = 0;
+    document.getElementById('secret-zone').addEventListener('click', () => {
+      secretClicks++;
+      if (secretClicks >= 3) {
+        const toast = document.getElementById('secret-toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 4000);
+        secretClicks = 0;
+        // You can redirect to a secret page or do anything here
+        // window.location.href = '/secret';
+      }
+    });
+
+    // ─── RANDOM BODY FLICKER ──────────────────────────────────
+    setInterval(() => {
+      if (Math.random() < 0.15) {
+        document.body.style.filter = 'brightness(0.85)';
+        setTimeout(() => { document.body.style.filter = ''; }, 80);
+      }
+    }, 12000);
+
+    // ─── INITIAL VOTE COUNT ───────────────────────────────────
+    document.getElementById('vote-counter').textContent = '4,821 VOTES CAST SO FAR';
+  </script>
+</body>
+</html>
